@@ -1,0 +1,21 @@
+Name: Hstwitt
+Version: 0.0.1
+Cabal-version: >= 1.6
+License: OtherLicense
+License-File: LICENSE
+Author: Christoph "Hammy" Stahl, Rene Hopf
+Maintainer: christoph.stahl@uni-dortmund.de
+Stability: alpha
+Category: Network
+Synopsis: A simple GTK Twitterclient 
+Build-type: Simple
+
+source-repository head
+    type: git
+    location: https://github.com/rene-dev/hstwitt.git
+
+
+Library
+    Build-Depends: base
+    Exposed-modules: Network.Hstwitt
+
