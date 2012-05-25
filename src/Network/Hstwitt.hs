@@ -1,6 +1,8 @@
 import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as B
 import Network.HTTP.Conduit
+import qualified Data.Map as Map
+
 
 oauth = newOAuth    { oauthServerName = "Twitter"
                     , oauthRequestUri = "https://api.twitter.com/oauth/request_token"
@@ -14,8 +16,27 @@ oauth = newOAuth    { oauthServerName = "Twitter"
                     , oauthVersion =  OAuth10a
     }
 
+configfile = "~/.hstwitt"
 
-main = do
+type Conf = Map.Map B.ByteString B.ByteString
+
+newConf :: Conf
+newConf = Map.empty
+
+addToConf :: B.ByteString -> B.ByteString -> Conf -> Conf
+addToConf = Map.insert 
+
+delFromConf :: B.ByteString -> Conf -> Conf
+delFromConf = Map.delete
+
+writeConf :: String -> Conf -> IO ()
+writeConf filename = writeFile filename . show
+
+readConf :: String -> IO (Conf)
+readConf filename = fmap read (readFile filename)
+
+
+main = do    
     credentials <- withManager $ \manager -> getTemporaryCredential oauth manager
     putStrLn $ authorizeUrl oauth credentials
     pin <- getLine
