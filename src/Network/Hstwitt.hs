@@ -2,7 +2,8 @@ import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as B
 import Network.HTTP.Conduit
 import qualified Data.Map as Map
-
+import System.IO
+import System.Directory
 
 oauth = newOAuth    { oauthServerName = "Twitter"
                     , oauthRequestUri = "https://api.twitter.com/oauth/request_token"
@@ -35,12 +36,23 @@ writeConf filename = writeFile filename . show
 readConf :: String -> IO (Conf)
 readConf filename = fmap read (readFile filename)
 
+main = do
+    configured <- doesFileExist configfile
+    if configured then 
+		tweet 
+	 else 
+		auth
 
-main = do    
+tweet = do
+    conf <- readConf configfile
+    putStrLn conf
+
+auth = do    
     credentials <- withManager $ \manager -> getTemporaryCredential oauth manager
     putStrLn $ authorizeUrl oauth credentials
     pin <- getLine
     let auth = injectVerifier (B.pack pin) credentials
     accessToken <- withManager $ \manager -> getAccessToken oauth auth manager
-    putStrLn $ show accessToken
+    putStrLn $ show accessToken	
+    writeConf configfile accessToken
 
