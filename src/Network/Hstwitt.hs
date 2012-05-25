@@ -3,6 +3,7 @@ import qualified Data.ByteString.Char8 as B
 import Network.HTTP.Conduit
 import qualified Data.Map as Map
 import System.IO
+import System.IO.Unsafe
 import System.Directory
 
 oauth = newOAuth    { oauthServerName = "Twitter"
@@ -17,7 +18,7 @@ oauth = newOAuth    { oauthServerName = "Twitter"
                     , oauthVersion =  OAuth10a
     }
 
-configfile = "~/.hstwitt"
+configfile = unsafePerformIO getHomeDirectory ++ "/.hstwitt"
 
 type Conf = Map.Map B.ByteString B.ByteString
 
@@ -45,14 +46,16 @@ main = do
 
 tweet = do
     conf <- readConf configfile
-    putStrLn conf
+    putStrLn $ show conf
 
 auth = do    
+    putStrLn "Keine Configdatei gefunden, bitte den Link klicken"
     credentials <- withManager $ \manager -> getTemporaryCredential oauth manager
     putStrLn $ authorizeUrl oauth credentials
+    putStr "Bitte PIN eingeben:"
     pin <- getLine
     let auth = injectVerifier (B.pack pin) credentials
     accessToken <- withManager $ \manager -> getAccessToken oauth auth manager
-    putStrLn $ show accessToken	
-    writeConf configfile accessToken
+    writeConf configfile $ Map.fromList $ unCredential accessToken
+    putStrLn $ "Config in " ++ configfile ++ " gespeichert"
 
