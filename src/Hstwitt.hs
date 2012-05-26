@@ -1,5 +1,6 @@
 import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy as L
 import Network.HTTP.Conduit
 import qualified Data.Map as Map
 import System.IO
@@ -8,6 +9,13 @@ import Network.Hstwitt.Const
 import Network.Hstwitt.Conf
 import Control.Exception
 import Data.Maybe
+import Control.Monad.IO.Class (MonadIO (liftIO))
+
+signedHttp :: MonadIO m => Credential -> String -> m L.ByteString
+signedHttp cred url = liftIO $ withManager $ \man -> do
+        url' <- liftIO $ parseUrl url
+        url'' <- signOAuth oauth cred url'
+        fmap responseBody $ httpLbs url'' man
 
 main = do
     hSetBuffering stdin NoBuffering -- fixes problems with the output
