@@ -9,7 +9,9 @@ module Network.Hstwitt.Conf (
 
 import qualified Data.Map as Map
 import qualified Data.ByteString.Char8 as B
+import Data.Maybe
 import System.IO
+import Control.Exception
 
 type Conf = Map.Map B.ByteString B.ByteString
 
@@ -25,7 +27,13 @@ delFromConf = Map.delete
 writeConf :: String -> Conf -> IO ()
 writeConf filename = writeFile filename . show
 
-readConf :: String -> IO (Conf)
-readConf filename = fmap read (readFile filename)
+
+-- Versucht die configdatei zu lesen. Wenn etwas schief läuft, wird Nothing zurück gegeben
+readConf :: String -> IO (Maybe (Conf, String))
+readConf filename = do
+    content <- try $ readFile filename :: IO (Either IOException String)
+    return $ case content of
+        Left _ -> Nothing
+        Right conf -> listToMaybe $ reads conf
 
 

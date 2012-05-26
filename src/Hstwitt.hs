@@ -6,23 +6,25 @@ import System.IO
 import System.Directory
 import Network.Hstwitt.Const
 import Network.Hstwitt.Conf
+import Control.Exception
+import Data.Maybe
 
 main = do
-    configured <- doesFileExist configfile
-    if configured then 
-		tweet 
+    hSetBuffering stdin NoBuffering -- fixes problems with the output
+    conf <- readConf configfile   
+    if isNothing conf then 
+		auth 
 	 else 
-		auth
+		tweet $ fst $ fromJust conf
 
-tweet = do
-    conf <- readConf configfile
-    putStrLn $ show conf
+tweet conf = do
+    putStrLn $ show $ Credential $ Map.toList conf
 
 auth = do    
-    putStrLn "Keine Configdatei gefunden, bitte den Link klicken"
+    putStrLn "Keine Configdatei gefunden oder Configdatei fehlerhaft, bitte den Link klicken"
     credentials <- withManager $ \manager -> getTemporaryCredential oauth manager
     putStrLn $ authorizeUrl oauth credentials
-    putStr "Bitte PIN eingeben:"
+    putStr "Bitte PIN eingeben: "
     pin <- getLine
     let auth = injectVerifier (B.pack pin) credentials
     accessToken <- withManager $ \manager -> getAccessToken oauth auth manager
