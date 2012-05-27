@@ -17,6 +17,6 @@ source-repository head
 
 Executable hstwitt
     hs-source-dirs: src
-    Build-Depends: base, authenticate-oauth, bytestring, http-conduit, directory, containers
+    Build-Depends: base, authenticate-oauth, bytestring, http-conduit, directory, containers, transformers
     main-is: Hstwitt.hs
 

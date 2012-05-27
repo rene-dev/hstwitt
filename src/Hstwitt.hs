@@ -7,9 +7,17 @@ import System.IO
 import System.Directory
 import Network.Hstwitt.Const
 import Network.Hstwitt.Conf
+import Network.Hstwitt.Types
 import Control.Exception
 import Data.Maybe
 import Control.Monad.IO.Class (MonadIO (liftIO))
+
+twittertest = "http://api.twitter.com/1/statuses/home_timeline.json?count=2"
+
+test = do
+	mconf <- readConf configfile
+	let conf = fst $ fromJust mconf
+	return $ Credential $ Map.toList conf
 
 signedHttp :: MonadIO m => Credential -> String -> m L.ByteString
 signedHttp cred url = liftIO $ withManager $ \man -> do
