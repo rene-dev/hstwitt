@@ -2,8 +2,30 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Network.Hstwitt.Types (
-      Tweets 
-    , Tweet 
+      Tweets    ( Tweets
+                , ttweets
+                )
+    , Tweet ( Tweet
+            , tcreated_at
+            , tid
+            , tid_str
+            , ttext
+            , tsource
+            , ttruncated
+            , tin_reply_to_status_id
+            , tin_reply_to_status_id_str
+            , tin_reply_to_user_id
+            , tin_reply_to_user_id_str
+            , tin_reply_to_screen_name
+            , tuser
+            , tgeo
+            , tplace
+--          , tcontributors
+            , tretweet_count
+            , tfavorited
+            , tretweeted
+            )
+                    
     , TUser ( TUser
             , tuid
             , tuid_str
