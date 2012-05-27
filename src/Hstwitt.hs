@@ -1,6 +1,6 @@
 import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString.Lazy.Char8 as L
 import Network.HTTP.Conduit
 import qualified Data.Map as Map
 import System.IO
