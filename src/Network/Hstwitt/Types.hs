@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Network.Hstwitt.Types (
-      Tweets (Tweets,ttweets)
+      Tweets
     , Tweet ( Tweet
             , tcreated_at
             , tid
@@ -60,38 +60,16 @@ module Network.Hstwitt.Types (
             , tudefault_profile_image
             , tufollowing
             )
-	,TestJS (TestJS, test1, test2)
     )
 where
 
 import Data.Aeson
---import Data.Functor
 import Control.Applicative
 import Control.Monad
-import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
 
 
-data TestJS = TestJS {
-		  test1 :: String
-		, test2 :: Int
-} deriving Show
-
-instance FromJSON TestJS where
-	parseJSON (Object o) = do
-			test1' <- o .: "test1"
-			test2' <- o .:? "test2" .!= 12
-			return $ TestJS { test1 = test1',  test2 = test2'}
-	parseJSON _ = mzero
-		
-			
-
-data Tweets = Tweets { ttweets :: [Tweet] } deriving Show
-instance FromJSON Tweets where
-	parseJSON (Array a) = do
-			ttweets' <- mapM parseJSON (V.toList a)
-			return $ Tweets {ttweets = ttweets'}
-	parseJSON _ = mzero
+type Tweets = [Tweet]
 
 data Tweet = Tweet  { tcreated_at :: String
                     , tid :: Int
@@ -126,7 +104,7 @@ instance FromJSON Tweet where
                 tin_reply_to_user_id' <- o .:? "in_reply_to_user_id"
                 tin_reply_to_user_id_str' <- o .:? "in_reply_to_user_id_str"
                 tin_reply_to_screen_name' <- o .:? "in_reply_to_screen_name"
-                tuser' <- o .: "user "
+                tuser' <- o .: "user"
 --                tgeo' <- o .: "geo"
 --                tplace'<- o .:? "place"
                 tretweet_count' <- o .: "retweet_count"

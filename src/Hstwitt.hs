@@ -11,13 +11,14 @@ import Network.Hstwitt.Types
 import Control.Exception
 import Data.Maybe
 import Control.Monad.IO.Class (MonadIO (liftIO))
+import Data.Aeson
 
-twittertest = "http://api.twitter.com/1/statuses/home_timeline.json?count=2"
+twittertest = "http://api.twitter.com/1/statuses/home_timeline.json"
 
 test = do
 	mconf <- readConf configfile
 	let conf = fst $ fromJust mconf
-	return $ Credential $ Map.toList conf
+	signedHttp (Credential $ Map.toList conf) twittertest
 
 signedHttp :: MonadIO m => Credential -> String -> m L.ByteString
 signedHttp cred url = liftIO $ withManager $ \man -> do
@@ -34,7 +35,15 @@ main = do
 		tweet $ fst $ fromJust conf
 
 tweet conf = do
-    putStrLn $ show $ Credential $ Map.toList conf
+	let cred = Credential $ Map.toList conf
+	jsontimeline <- signedHttp cred twittertest
+	let timeline = fromJust $ decode jsontimeline  :: Tweets
+	mapM printtweet timeline
+	return ()
+
+printtweet :: Tweet -> IO ()
+printtweet t = putStrLn $ (tuscreen_name $ tuser t)
+		++": " ++ ttext t
 
 auth = do    
     putStrLn "Keine Configdatei gefunden oder Configdatei fehlerhaft, bitte den Link klicken"
