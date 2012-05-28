@@ -38,12 +38,18 @@ tweet conf = do
 	let cred = Credential $ Map.toList conf
 	jsontimeline <- signedHttp cred twittertest
 	let timeline = fromJust $ decode jsontimeline  :: Tweets
-	mapM printtweet timeline
+	mapM printtweet $ reverse timeline
 	return ()
 
+colorize :: String -> String -> String
+colorize c s = "\ESC[" ++ c ++ "m" ++ s ++ "\ESC[m"
+
 printtweet :: Tweet -> IO ()
-printtweet t = putStrLn $ (tuscreen_name $ tuser t)
-		++": " ++ ttext t
+printtweet t = putStrLn $ 
+		colorize "1;30" (tid_str $ t) ++ " " ++
+		colorize "1" (tcreated_at $ t) ++ "\n\t" ++
+		colorize "1;32" (tuscreen_name $ tuser t) ++": " ++
+		ttext t
 
 auth = do    
     putStrLn "Keine Configdatei gefunden oder Configdatei fehlerhaft, bitte den Link klicken"
