@@ -27,7 +27,8 @@ signedHttp cred url = liftIO $ withManager $ \man -> do
         fmap responseBody $ httpLbs url'' man
 
 main = do
-    hSetBuffering stdin NoBuffering -- fixes problems with the output
+    hSetBuffering stdin NoBuffering -- fixes problems with the input
+    hSetBuffering stdout NoBuffering -- fixes problems with the output
     conf <- readConf configfile   
     if isNothing conf then 
 		auth 
