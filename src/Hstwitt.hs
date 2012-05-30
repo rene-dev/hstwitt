@@ -1,7 +1,9 @@
 import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as L
-import Network.HTTP.Conduit
+import Network.HTTP
+import Network.URI
+import qualified Network.HTTP.Conduit as C
 import qualified Data.Map as Map
 import System.IO
 import System.Directory
@@ -9,6 +11,7 @@ import Network.Hstwitt.Const
 import Network.Hstwitt.Conf
 import Network.Hstwitt.Types
 import Control.Exception
+import Control.Concurrent
 import Data.Maybe
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson
@@ -20,16 +23,25 @@ debugGetCred = do
     let conf = fst $ fromJust mconf
     return $ Credential $ Map.toList conf
 
+request2request :: C.Request m -> String -> Request m
+request2request r uri = Request {
+                        rqURI = parseURI uri
+                        rqMethod = method2method $ method r
+                    }
+
+method2method :: C.Method -> RequestMethod
+method2method 
+
 test = do
 	mconf <- readConf configfile
 	let conf = fst $ fromJust mconf
 	signedHttp (Credential $ Map.toList conf) twittertest
 
 signedHttp :: MonadIO m => Credential -> String -> m L.ByteString
-signedHttp cred url = liftIO $ withManager $ \man -> do
-        url' <- liftIO $ parseUrl url
-        url'' <- signOAuth oauth cred url'
-        fmap responseBody $ httpLbs url'' man
+signedHttp cred url = do
+        signedReq <- signOAuth oauth cred $ defaultGETRequest $ fromJust $ parseURI url
+        rsp <- simpleHTTP signedReq 
+        return $ rspBody $ either undefined id rsp
 
 main = do
     hSetBuffering stdout NoBuffering -- fixes problems with the output
@@ -58,12 +70,12 @@ printtweet t = putStrLn $
 
 auth = do    
     putStrLn "Keine Configdatei gefunden oder Configdatei fehlerhaft, bitte den Link klicken"
-    credentials <- withManager $ \manager -> getTemporaryCredential oauth manager
+    credentials <- C.withManager $ \manager -> getTemporaryCredential oauth manager
     putStrLn $ authorizeUrl oauth credentials
     putStr "Bitte PIN eingeben: "
     pin <- getLine
     let auth = injectVerifier (B.pack pin) credentials
-    accessToken <- withManager $ \manager -> getAccessToken oauth auth manager
+    accessToken <- C.withManager $ \manager -> getAccessToken oauth auth manager
     writeConf configfile $ Map.fromList $ unCredential accessToken
     putStrLn $ "Config in " ++ configfile ++ " gespeichert"
 
