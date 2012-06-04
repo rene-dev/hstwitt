@@ -12,6 +12,9 @@ import Control.Exception
 import Data.Maybe
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson
+import qualified Data.Conduit as C
+import Control.Monad.Trans.Resource
+import Graphics.UI.Gtk
 
 twittertest = "http://api.twitter.com/1/statuses/home_timeline.json"
 
@@ -25,6 +28,14 @@ test = do
 	let conf = fst $ fromJust mconf
 	signedHttp (Credential $ Map.toList conf) twittertest
 
+debugreq :: IO (C.Source (ResourceT IO) B.ByteString)
+debugreq = liftIO $ withManager $ \m -> do
+        cred <- liftIO $ debugGetCred
+        req <- liftIO $ parseUrl twittertest
+        surl <- signOAuth oauth cred req
+        fmap responseBody $ http surl m
+
+
 signedHttp :: MonadIO m => Credential -> String -> m L.ByteString
 signedHttp cred url = liftIO $ withManager $ \man -> do
         url' <- liftIO $ parseUrl url
@@ -37,7 +48,45 @@ main = do
     if isNothing conf then 
 		auth 
 	 else 
-		tweet $ fst $ fromJust conf
+                createGUI $ fst $ fromJust conf
+	--	tweet $ fst $ fromJust conf
+
+createGUI conf = do
+	let cred = Credential $ Map.toList conf
+	jsontimeline <- signedHttp cred twittertest
+	let timeline = fromJust $ decode jsontimeline  :: Tweets
+        initGUI
+        window <- windowNew
+        vPaned <- vPanedNew
+        inputField <- textViewNew
+        tweetsScroll <- scrolledWindowNew Nothing Nothing
+        tweetsBox <- vBoxNew False 2
+--        tweet <- labelNew (Just "Tweet1")
+--        tweet2 <- labelNew (Just "Tweet2")
+        scrolledWindowAddWithViewport tweetsScroll tweetsBox
+        set window [ containerChild := vPaned , windowTitle := "HsTwitt" ]
+--        boxPackStart tweetsBox tweet PackNatural 0
+        mapM (addTweet tweetsBox)  timeline
+--        boxPackStart tweetsBox tweet2 PackNatural 0
+--        boxPackEnd vBox inputField PackNatural 0
+        panedPack1 vPaned tweetsScroll True False
+        panedPack2 vPaned inputField False False
+--        boxPackStart vBox tweetsScroll PackGrow 0
+        onDestroy window mainQuit
+        widgetShowAll window
+        mainGUI
+    
+
+addTweet :: VBox -> Tweet -> IO ()
+addTweet vBox tweet = do
+    tweetLabel <- textViewNew
+    textBuffer <- textBufferNew Nothing
+    textBufferSetText textBuffer $ tweet2String tweet
+
+    textViewSetBuffer tweetLabel textBuffer
+    textViewSetEditable tweetLabel False
+    textViewSetWrapMode tweetLabel WrapWord
+    boxPackEnd vBox tweetLabel PackNatural 0
 
 tweet conf = do
 	let cred = Credential $ Map.toList conf
@@ -48,6 +97,10 @@ tweet conf = do
 
 colorize :: String -> String -> String
 colorize c s = "\ESC[" ++ c ++ "m" ++ s ++ "\ESC[m"
+
+tweet2String :: Tweet -> String
+tweet2String t =  (tuscreen_name $ tuser t) ++": \n" ++
+		ttext t
 
 printtweet :: Tweet -> IO ()
 printtweet t = putStrLn $ 
