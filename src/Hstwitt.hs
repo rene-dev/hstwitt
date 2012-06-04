@@ -60,18 +60,12 @@ createGUI conf = do
         vPaned <- vPanedNew
         inputField <- textViewNew
         tweetsScroll <- scrolledWindowNew Nothing Nothing
-        tweetsBox <- vBoxNew False 2
---        tweet <- labelNew (Just "Tweet1")
---        tweet2 <- labelNew (Just "Tweet2")
+        tweetsBox <- vBoxNew False 5
         scrolledWindowAddWithViewport tweetsScroll tweetsBox
         set window [ containerChild := vPaned , windowTitle := "HsTwitt" ]
---        boxPackStart tweetsBox tweet PackNatural 0
         mapM (addTweet tweetsBox)  timeline
---        boxPackStart tweetsBox tweet2 PackNatural 0
---        boxPackEnd vBox inputField PackNatural 0
         panedPack1 vPaned tweetsScroll True False
         panedPack2 vPaned inputField False False
---        boxPackStart vBox tweetsScroll PackGrow 0
         onDestroy window mainQuit
         widgetShowAll window
         mainGUI
@@ -80,9 +74,12 @@ createGUI conf = do
 addTweet :: VBox -> Tweet -> IO ()
 addTweet vBox tweet = do
     tweetLabel <- textViewNew
-    textBuffer <- textBufferNew Nothing
-    textBufferSetText textBuffer $ tweet2String tweet
-
+    tagtable <- textTagTableNew
+    bold <- textTagNew $ Just "Bold"
+    set bold [ textTagFont := "Sans Italic 12" ]
+    textTagTableAdd tagtable bold
+    textBuffer <- tweet2textBuffer tweet tagtable
+--    textBufferSetText textBuffer $ tweet2String tweet
     textViewSetBuffer tweetLabel textBuffer
     textViewSetEditable tweetLabel False
     textViewSetWrapMode tweetLabel WrapWord
@@ -98,9 +95,26 @@ tweet conf = do
 colorize :: String -> String -> String
 colorize c s = "\ESC[" ++ c ++ "m" ++ s ++ "\ESC[m"
 
-tweet2String :: Tweet -> String
-tweet2String t =  (tuscreen_name $ tuser t) ++": \n" ++
-		ttext t
+tweet2textBuffer :: Tweet -> TextTagTable-> IO TextBuffer
+tweet2textBuffer t tagtable = do
+                        buffer <- textBufferNew $ Just tagtable
+                        istartName <- textBufferGetEndIter buffer
+                        mstartName <- textBufferCreateMark buffer Nothing istartName False
+                        textBufferInsert buffer istartName $ tuscreen_name $ tuser t
+                        iendName <- textBufferGetEndIter buffer
+                        mendName <- textBufferCreateMark buffer Nothing iendName False
+                        textBufferInsert buffer iendName "\n"
+                        startText <- textBufferGetEndIter buffer
+                        textBufferInsert buffer startText $ ttext t
+                        endText <- textBufferGetEndIter buffer
+                        a <- textBufferGetIterAtMark buffer mstartName
+                        b <- textBufferGetIterAtMark buffer mendName
+                        textBufferApplyTagByName buffer "Bold" a b
+                        return buffer
+                        
+
+--(tuscreen_name $ tuser t) ++": \n" ++
+--		ttext t
 
 printtweet :: Tweet -> IO ()
 printtweet t = putStrLn $ 
