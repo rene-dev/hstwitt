@@ -1,7 +1,9 @@
 import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as L
+import Data.Conduit.Binary (sinkFile)
 import Network.HTTP.Conduit
+import qualified Data.Conduit as C
 import qualified Data.Map as Map
 import System.IO
 import System.Directory
@@ -19,11 +21,13 @@ import Graphics.UI.Gtk
 twittertest = "http://api.twitter.com/1/statuses/home_timeline.json"
 
 debugGetCred = do
+    configfile <- getOauthconfigfile
     mconf <- readConf configfile
     let conf = fst $ fromJust mconf
     return $ Credential $ Map.toList conf
 
 test = do
+        configfile <- getOauthconfigfile
 	mconf <- readConf configfile
 	let conf = fst $ fromJust mconf
 	signedHttp (Credential $ Map.toList conf) twittertest
@@ -44,6 +48,7 @@ signedHttp cred url = liftIO $ withManager $ \man -> do
 
 main = do
     hSetBuffering stdout NoBuffering -- fixes problems with the output
+    configfile <- getOauthconfigfile
     conf <- readConf configfile   
     if isNothing conf then 
 		auth 
@@ -70,10 +75,26 @@ createGUI conf = do
         widgetShowAll window
         mainGUI
     
+getTweetImg :: Tweet -> IO FilePath
+getTweetImg t = do
+        cachedir <- getCachedir
+        fileExists <- doesFileExist (cachedir ++ (tuscreen_name $ tuser t))
+        if not fileExists then do
+            request <- parseUrl $ tuprofile_image_url $ tuser $ t
+            liftIO $ withManager $ \manager -> do
+                      response <- http request manager
+                      (responseBody response) C.$$ sinkFile $ cachedir ++ (tuscreen_name $ tuser t)
+          else
+            return ()
+        return $ cachedir ++ (tuscreen_name $ tuser t)
+
 
 addTweet :: VBox -> Tweet -> IO ()
 addTweet vBox tweet = do
+    tweetbox <- hBoxNew False 2
     tweetLabel <- textViewNew
+    tweetimgpath <- getTweetImg tweet
+    tweetimg <- imageNewFromFile tweetimgpath
     tagtable <- textTagTableNew
     bold <- textTagNew $ Just "Bold"
     set bold [ textTagFont := "Sans Bold 10" ]
@@ -85,12 +106,15 @@ addTweet vBox tweet = do
     textViewSetBuffer tweetLabel textBuffer
     textViewSetEditable tweetLabel False
     textViewSetWrapMode tweetLabel WrapWord
-    boxPackEnd vBox tweetLabel PackNatural 0
+    boxPackEnd tweetbox tweetLabel PackGrow 0
+    boxPackEnd tweetbox tweetimg PackNatural 0
+    boxPackEnd vBox tweetbox PackNatural 0
 
 
 tweet2textBuffer :: Tweet -> TextTagTable-> IO TextBuffer
 tweet2textBuffer t tagtable = do
                         buffer <- textBufferNew $ Just tagtable
+
 			add2textBuffer buffer "Time" (Just "jright") $ tcreated_at t ++ "\n"
 			add2textBuffer buffer "Name" (Just "Bold") $ (tuscreen_name $ tuser t) ++ "\n"
 			add2textBuffer buffer "Text" Nothing $ ttext t
@@ -138,6 +162,11 @@ auth = do
     pin <- getLine
     let auth = injectVerifier (B.pack pin) credentials
     accessToken <- withManager $ \manager -> getAccessToken oauth auth manager
+    cachedir <- getCachedir
+    configfile <- getOauthconfigfile
+    appdir <- getAppUserDataDirectory "hstwitt"
+    createDirectoryIfMissing True appdir
+    createDirectoryIfMissing True cachedir
     writeConf configfile $ Map.fromList $ unCredential accessToken
     putStrLn $ "Config in " ++ configfile ++ " gespeichert"
 

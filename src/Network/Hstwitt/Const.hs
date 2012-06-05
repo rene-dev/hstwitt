@@ -1,6 +1,7 @@
 module Network.Hstwitt.Const (
     oauth,
-    configfile,
+    getOauthconfigfile,
+    getCachedir
 ) where
 
 import Web.Authenticate.OAuth
@@ -20,5 +21,11 @@ oauth = newOAuth    { oauthServerName = "Twitter"
                     , oauthVersion =  OAuth10a
     }
 
-configfile = unsafePerformIO getHomeDirectory ++ "/.hstwitt"
 
+getOauthconfigfile = do
+        appdir <- getAppUserDataDirectory "hstwitt"
+        return $ appdir ++ "/oauth.conf"
+
+getCachedir = do
+        appdir <- getAppUserDataDirectory "hstwitt"
+        return $ appdir ++ "/cache/"
