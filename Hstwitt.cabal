@@ -9,6 +9,7 @@ Stability: alpha
 Category: Network
 Synopsis: A simple GTK Twitterclient 
 Build-type: Simple
+data-files: UI.glade
 
 source-repository head
     type: git
@@ -17,6 +18,6 @@ source-repository head
 
 Executable hstwitt
     hs-source-dirs: src
-    Build-Depends: base, authenticate-oauth, bytestring, http-conduit, directory, containers, transformers, aeson, unordered-containers, vector, resourcet, conduit, gtk
+    Build-Depends: base, authenticate-oauth, bytestring, http-conduit, directory, containers, transformers, aeson, unordered-containers, vector, resourcet, conduit, gtk, glade
     main-is: Hstwitt.hs
 
