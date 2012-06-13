@@ -3,6 +3,8 @@ module Network.Hstwitt.Conf (
     newConf,
     addToConf,
     delFromConf,
+    getFromConf,
+    getFromConfS,
     writeConf,
     readConf
     ) where
@@ -17,6 +19,12 @@ type Conf = Map.Map B.ByteString B.ByteString
 
 newConf :: Conf
 newConf = Map.empty
+
+getFromConf :: B.ByteString -> Conf -> B.ByteString
+getFromConf key conf = conf Map.! key
+
+getFromConfS :: String -> Conf -> String
+getFromConfS key conf = B.unpack $ getFromConf (B.pack key) conf
 
 addToConf :: B.ByteString -> B.ByteString -> Conf -> Conf
 addToConf = Map.insert

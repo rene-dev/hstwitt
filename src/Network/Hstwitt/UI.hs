@@ -22,35 +22,48 @@ import Paths_Hstwitt
 createGUI conf = do
         uiFile <- getDataFileName "UI.glade"
         Just xml <- xmlNew uiFile
-        putStrLn uiFile
+--        putStrLn uiFile
         timeline <- getHomeTimeline conf "foo"
         window   <- xmlGetWidget xml castToWindow "window_MainWindow"
---        vPaned <- vPanedNew
---        inputField <- textViewNew
---        tweetsScroll <- scrolledWindowNew Nothing Nothing
         tweetsBox <- xmlGetWidget xml castToVBox "vbox_tweets"
---        scrolledWindowAddWithViewport tweetsScroll tweetsBox
---        set window [ containerChild := vPaned , windowTitle := "HsTwitt" ]
+        imageTweet <- xmlGetWidget xml castToImage "image_tweet"
+        textviewTweet <- xmlGetWidget xml castToTextView "textview_tweet"
+        buttonTweet <- xmlGetWidget xml castToButton "button_tweet"
+        let screen_name = getFromConfS "screen_name" conf
+        image <- getImg (getUserProfileImageUrl screen_name Nothing) screen_name
+        imageSetFromFile imageTweet image 
         mapM (addTweet tweetsBox)  timeline
---        panedPack1 vPaned tweetsScroll True False
---        panedPack2 vPaned inputField False False
+        onClicked buttonTweet $ sendTweet conf textviewTweet
         onDestroy window mainQuit
         widgetShowAll window
         mainGUI
 
+sendTweet :: Conf -> TextView -> IO ()
+sendTweet conf tw = do
+    buffer <- textViewGetBuffer tw
+    start <- textBufferGetStartIter buffer
+    end <- textBufferGetEndIter buffer
+    tweet <- textBufferGetText buffer start end False
+    textBufferDelete start end
+    updateTweets conf tweet
 
-getTweetImg :: Tweet -> IO FilePath
-getTweetImg t = do
+
+getImg :: String -> String -> IO FilePath
+getImg url img = do
         cachedir <- getCachedir
-        fileExists <- doesFileExist (cachedir ++ (tuscreen_name $ tuser t))
+        fileExists <- doesFileExist (cachedir ++ img)
         if not fileExists then do
-            request <- parseUrl $ tuprofile_image_url $ tuser $ t
+            request <- parseUrl $ url
             liftIO $ withManager $ \manager -> do
                       response <- http request manager
-                      (responseBody response) C.$$ sinkFile $ cachedir ++ (tuscreen_name $ tuser t)
+                      (responseBody response) C.$$ sinkFile $ cachedir ++ img
           else
             return ()
-        return $ cachedir ++ (tuscreen_name $ tuser t)
+        return $ cachedir ++ img
+
+
+getTweetImg :: Tweet -> IO FilePath
+getTweetImg t = getImg (tuprofile_image_url $ tuser $ t) (tuscreen_name $ tuser t)
 
 addTweet :: VBox -> Tweet -> IO ()
 addTweet vBox tweet = do

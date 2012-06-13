@@ -56,11 +56,27 @@
               <widget class="GtkTextView" id="textview_tweet">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="wrap_mode">word</property>
               </widget>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkButton" id="button_tweet">
+                <property name="label" translatable="yes">Tweet</property>
+                <property name="width_request">100</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="has_focus">True</property>
+                <property name="receives_default">True</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </widget>
