@@ -37,11 +37,10 @@ writeConf filename = writeFile filename . show
 
 
 -- Versucht die configdatei zu lesen. Wenn etwas schief läuft, wird Nothing zurück gegeben
-readConf :: String -> IO (Maybe (Conf, String))
+readConf :: String -> IO (Maybe Conf)
 readConf filename = do
     content <- try $ readFile filename :: IO (Either IOException String)
     return $ case content of
         Left _ -> Nothing
-        Right conf -> listToMaybe $ reads conf
-
+        Right conf -> listToMaybe $ map fst $ reads conf
 

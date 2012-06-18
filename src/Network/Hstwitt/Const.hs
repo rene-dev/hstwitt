@@ -1,6 +1,7 @@
 module Network.Hstwitt.Const (
     oauth,
     getOauthconfigfile,
+    getSinceIdStrconfigfile,
     getCachedir
 ) where
 
@@ -21,6 +22,10 @@ oauth = newOAuth    { oauthServerName = "Twitter"
                     , oauthVersion =  OAuth10a
     }
 
+
+getSinceIdStrconfigfile = do
+        appdir <- getAppUserDataDirectory "hstwitt"
+        return $ appdir ++ "/since_id_str.conf"
 
 getOauthconfigfile = do
         appdir <- getAppUserDataDirectory "hstwitt"

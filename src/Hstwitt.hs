@@ -22,12 +22,11 @@ main = do
     hSetBuffering stdout NoBuffering -- fixes problems with the output
     configfile <- getOauthconfigfile
     conf <- readConf configfile   
-    if isNothing conf then 
-		auth 
+    if isNothing conf then do
+		createAuthGUI getauthcode auth
+                main
 	 else  do 
-                initGUI
-                createGUI $ fst $ fromJust conf
-                putStrLn "Foobar"
+                createGUI $ fromJust conf
 
 
 	--	tweet $ fst $ fromJust conf
@@ -50,12 +49,14 @@ printtweet t = putStrLn $
 		colorize "1;32" (tuscreen_name $ tuser t) ++": " ++
 		ttext t -}
 
-auth = do    
-    putStrLn "Keine Configdatei gefunden oder Configdatei fehlerhaft, bitte den Link klicken"
+getauthcode :: IO (String, Credential)
+getauthcode = do
     credentials <- withManager $ \manager -> getTemporaryCredential oauth manager
-    putStrLn $ authorizeUrl oauth credentials
-    putStr "Bitte PIN eingeben: "
-    pin <- getLine
+    return (authorizeUrl oauth credentials, credentials)
+    
+
+auth :: Credential -> String -> IO ()
+auth credentials pin = do    
     let auth = injectVerifier (B.pack pin) credentials
     accessToken <- withManager $ \manager -> getAccessToken oauth auth manager
     cachedir <- getCachedir
@@ -64,5 +65,5 @@ auth = do
     createDirectoryIfMissing True appdir
     createDirectoryIfMissing True cachedir
     writeConf configfile $ Map.fromList $ unCredential accessToken
-    putStrLn $ "Config in " ++ configfile ++ " gespeichert"
+--    putStrLn $ "Config in " ++ configfile ++ " gespeichert"
 

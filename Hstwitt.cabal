@@ -9,7 +9,7 @@ Stability: alpha
 Category: Network
 Synopsis: A simple GTK Twitterclient 
 Build-type: Simple
-data-files: UI.glade
+data-files: UI.glade, Auth.glade
 
 source-repository head
     type: git
