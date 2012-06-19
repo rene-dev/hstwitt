@@ -9,6 +9,7 @@ import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Glade
 import Data.Maybe
 import System.Directory
+import qualified Data.ByteString.Char8 as B
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Conduit.Binary (sinkFile)
 import qualified Data.Conduit as C
@@ -26,7 +27,6 @@ createGUI conf = do
                          priorityDefaultIdle 50
         uiFile <- getDataFileName "UI.glade"
         Just xml <- xmlNew uiFile
-        timeline <- getHomeTimeline conf Nothing
         window   <- xmlGetWidget xml castToWindow "window_MainWindow"
         tweetsBox <- xmlGetWidget xml castToVBox "vbox_tweets"
         tweetsViewPort <- xmlGetWidget xml castToViewport "viewport_tweets"
@@ -34,9 +34,13 @@ createGUI conf = do
         textviewTweet <- xmlGetWidget xml castToTextView "textview_tweet"
         buttonTweet <- xmlGetWidget xml castToButton "button_tweet"
         let screen_name = getFromConfS "screen_name" conf
-        image <- getImg (getUserProfileImageUrl screen_name Nothing) screen_name
+        profileUrl <- getUserProfileImageUrl screen_name SizeNormal
+        image <- getImg profileUrl screen_name
         imageSetFromFile imageTweet image 
-        mapM (addTweet tweetsBox) $ reverse timeline        
+        timeline <- getHomeTimeline conf Nothing
+        case timeline of
+            Just jtimeline -> mapM (addTweet tweetsBox) $ reverse jtimeline
+            Nothing -> return [()]
         scrollDown tweetsViewPort
         onClicked buttonTweet $ sendTweet conf textviewTweet
         forkIO $ updateLoop conf tweetsBox
@@ -82,11 +86,14 @@ updateLoop conf tweetsBox = do
     threadDelay 20000000
     putStrLn "Update"
     ntimeline <- getNewHomeTimeline conf
-    mapM (addTweet tweetsBox) $ reverse ntimeline
-    widgetQueueDraw tweetsBox
-    widgetHide tweetsBox
-    widgetShowAll tweetsBox
-    updateLoop conf tweetsBox
+    case ntimeline of
+        Just jtimeline -> do
+            mapM (addTweet tweetsBox) $ reverse jtimeline
+            widgetQueueDraw tweetsBox
+            widgetHide tweetsBox
+            widgetShowAll tweetsBox
+            updateLoop conf tweetsBox
+        Nothing -> return ()
 
 sendTweet :: Conf -> TextView -> IO ()
 sendTweet conf tw = do
@@ -99,12 +106,14 @@ sendTweet conf tw = do
     return ()
 
 
-getImg :: String -> String -> IO FilePath
-getImg url img = do
+getImg :: Request (C.ResourceT IO) -> String -> IO FilePath
+getImg request img = do
+--        putStrLn url
         cachedir <- getCachedir
         fileExists <- doesFileExist (cachedir ++ img)
         if not fileExists then do
-            request <- parseUrl $ url
+--            request <- parseUrl $ url
+            putStrLn $ B.unpack $ queryString request
             liftIO $ withManager $ \manager -> do
                       response <- http request manager
                       (responseBody response) C.$$ sinkFile $ cachedir ++ img
@@ -114,7 +123,10 @@ getImg url img = do
 
 
 getTweetImg :: Tweet -> IO FilePath
-getTweetImg t = getImg (tuprofile_image_url $ tuser $ t) (tuscreen_name $ tuser t)
+getTweetImg t = do
+    request <- parseUrl $ tuprofile_image_url $ tuser $ t
+    getImg request (tuscreen_name $ tuser t)
+
 
 addTweet :: VBox -> Tweet -> IO ()
 addTweet vBox tweet = do
