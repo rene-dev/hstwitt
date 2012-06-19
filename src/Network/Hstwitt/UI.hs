@@ -83,7 +83,7 @@ sendPin auth credentials pinEntry = do
 
 updateLoop :: Conf -> VBox -> IO ()
 updateLoop conf tweetsBox = do
-    threadDelay 20000000
+    threadDelay 3000000
     putStrLn "Update"
     ntimeline <- getNewHomeTimeline conf
     case ntimeline of
@@ -92,8 +92,10 @@ updateLoop conf tweetsBox = do
             widgetQueueDraw tweetsBox
             widgetHide tweetsBox
             widgetShowAll tweetsBox
-            updateLoop conf tweetsBox
-        Nothing -> return ()
+        Nothing -> do
+            putStrLn "Nichts zu tun"
+            return ()
+    updateLoop conf tweetsBox
 
 sendTweet :: Conf -> TextView -> IO ()
 sendTweet conf tw = do

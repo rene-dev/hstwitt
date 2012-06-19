@@ -27,6 +27,7 @@ import Web.Authenticate.OAuth
 import Network.HTTP.Conduit
 import Network.HTTP.Types
 import System.IO
+import qualified Control.Monad.Trans.Resource as C
 
 
 
@@ -57,12 +58,12 @@ getUserProfileImageUrl user size = do
 
                 
 
-signedHttp :: MonadIO m => Credential -> String -> m L.ByteString
-signedHttp cred url = liftIO $ withManager $ \man -> do
-        liftIO $ putStrLn url
-        url' <- liftIO $ parseUrl url
-        url'' <- signOAuth oauth cred url'
-        fmap responseBody $ httpLbs url'' man
+signedHttp :: MonadIO m => Credential -> Request (C.ResourceT IO) -> m L.ByteString
+signedHttp cred request = liftIO $ withManager $ \man -> do
+--        liftIO $ putStrLn url
+--        url' <- liftIO $ parseUrl url
+        request' <- signOAuth oauth cred request
+        fmap responseBody $ httpLbs request' man
 
 
 getNewHomeTimeline :: Conf -> IO (Maybe Tweets)
@@ -75,17 +76,12 @@ getNewHomeTimeline conf = do
 getHomeTimeline :: Conf -> Maybe Conf -> IO (Maybe Tweets)
 getHomeTimeline conf since_id_str = do
         let cred = Credential $ Map.toList conf        
-        let request = "http://api.twitter.com/1/statuses/home_timeline.json" ++ if isNothing since_id_str then "" else "?since_id=" ++ (B.unpack $ fromJust since_id_str Map.! (B.pack "since_id"))
---        let add = case since_id_str of
---            Just a -> "?since_id=" ++ (B.unpack $ a Map.! (B.pack "since_id"))
---            otherwise -> ""
---        putStrLn request
-        jsontimeline <- signedHttp cred $ request
---        putStrLn $ show jsontimeline
-        let timeline = decode jsontimeline  :: Maybe Tweets
---        let newestTweet = listToMaybe $ timeline
+        request <- parseUrl $ "http://api.twitter.com/1/statuses/home_timeline.json" 
+        let queryrequest = if isNothing since_id_str then request else request {queryString = renderQuery False [(B.pack "since_id", Just (fromJust since_id_str Map.! (B.pack "since_id")))]}
+        jsontimeline <- signedHttp cred $ queryrequest
+        let timeline = fromJust $ decode jsontimeline  :: Tweets
         case timeline of
-            Just a -> do
+            a@(x:xs) -> do
                 putStrLn $ "Neue Tweets: " ++ (show $ length $ a)
                 let new_since_id_str = tid_str $ head a
                 let old_since_id_str = if isNothing since_id_str then "" else (B.unpack $ fromJust since_id_str Map.! (B.pack "since_id"))
@@ -95,9 +91,8 @@ getHomeTimeline conf since_id_str = do
                 let new_since_id_str_conf =  Map.fromList [(B.pack "since_id", B.pack new_since_id_str)]
                 since_id_str_file <- getSinceIdStrconfigfile    
                 writeConf since_id_str_file new_since_id_str_conf
-                return $ Just since_id_str
+                return $ Just timeline
             otherwise -> return Nothing
-        return timeline
 
 updateTweets :: Conf -> String -> IO ()
 updateTweets conf tweet = do
