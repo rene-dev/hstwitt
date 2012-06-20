@@ -83,7 +83,7 @@ sendPin auth credentials pinEntry = do
 
 updateLoop :: Conf -> VBox -> IO ()
 updateLoop conf tweetsBox = do
-    threadDelay 3000000
+    threadDelay 30000000
     putStrLn "Update"
     ntimeline <- getNewHomeTimeline conf
     case ntimeline of
