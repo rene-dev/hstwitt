@@ -1,2 +1,6 @@
 hstwitt
 =======
+Installation
+------------
+
+`cabal install`
