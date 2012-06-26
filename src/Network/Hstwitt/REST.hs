@@ -72,10 +72,10 @@ getNewHomeTimeline conf = do
 
 getHomeTimeline :: Conf -> Maybe Conf -> IO (Maybe Tweets)
 getHomeTimeline conf since_id_str = do
-        let cred = Credential $ Map.toList conf        
-        request <- parseUrl $ "http://api.twitter.com/1/statuses/home_timeline.json" 
-        let queryrequest = if isNothing since_id_str then request else request {queryString = renderQuery False [(B.pack "since_id", Just (fromJust since_id_str Map.! (B.pack "since_id")))]}
-        jsontimeline <- signedHttp cred $ queryrequest
+        let cred = Credential $ Map.toList conf
+        request <- parseUrl "http://api.twitter.com/1/statuses/home_timeline.json"
+        let queryrequest = if isNothing since_id_str then request else request {queryString = renderQuery False [(B.pack "since_id", Just $ fromJust since_id_str Map.! B.pack "since_id")]}
+        jsontimeline <- signedHttp cred queryrequest
         let timeline = fromJust $ decode jsontimeline  :: Tweets
         case timeline of
             a@(x:xs) -> do
