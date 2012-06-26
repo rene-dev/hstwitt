@@ -93,7 +93,7 @@ updateLoop conf tweetsBox = do
             widgetHide tweetsBox
             widgetShowAll tweetsBox
         Nothing -> do
-            putStrLn "Nichts zu tun"
+--            putStrLn "Nichts zu tun"
             return ()
     updateLoop conf tweetsBox
 
@@ -115,7 +115,7 @@ getImg request img = do
         fileExists <- doesFileExist (cachedir ++ img)
         if not fileExists then do
 --            request <- parseUrl $ url
-            putStrLn $ B.unpack $ queryString request
+--            putStrLn $ B.unpack $ queryString request
             liftIO $ withManager $ \manager -> do
                       response <- http request manager
                       (responseBody response) C.$$ sinkFile $ cachedir ++ img
