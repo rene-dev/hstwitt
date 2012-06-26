@@ -33,13 +33,24 @@ delFromConf :: B.ByteString -> Conf -> Conf
 delFromConf = Map.delete
 
 writeConf :: String -> Conf -> IO ()
-writeConf filename = writeFile filename . show
+writeConf filename conf = do 
+--                putStrLn $ "Foo " ++ filename
+                error <- try $ writeFile filename $ show conf :: IO (Either IOException ())
+                case error of
+                    Left _ -> putStrLn "Irgendwas ist beim schreiben schief gegangen.... egal"
+                    Right _ -> return ()
+
 
 
 -- Versucht die configdatei zu lesen. Wenn etwas schief läuft, wird Nothing zurück gegeben
 readConf :: String -> IO (Maybe Conf)
 readConf filename = do
-    content <- try $ readFile filename :: IO (Either IOException String)
+    let readThisFile s h = do
+        eof <- hIsEOF h
+        if eof then return s else do
+            content <- hGetLine h
+            return $ s ++ "\n" ++ content
+    content <- try $ withFile filename ReadMode $ readThisFile "" :: IO (Either IOException String)
     return $ case content of
         Left _ -> Nothing
         Right conf -> listToMaybe $ map fst $ reads conf
