@@ -98,7 +98,7 @@ updateLoop conf tweetsBox = do
     updateLoop conf tweetsBox
 
 sendTweet :: Conf -> TextView -> IO ()
-sendTweet conf tw = do
+sendTweet conf tw = do    
     buffer <- textViewGetBuffer tw
     start <- textBufferGetStartIter buffer
     end <- textBufferGetEndIter buffer

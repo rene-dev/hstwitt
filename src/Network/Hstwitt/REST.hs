@@ -52,7 +52,7 @@ getUserProfileImageUrl user size = do
                         SizeOriginal -> B.pack "original"
                         )
                 let query = renderQuery False [userquery, sizequery]
-                url <- (parseUrl $ "http://api.twitter.com/1/users/profile_image?screen_name=" ++ user) 
+                url <- parseUrl $ "http://api.twitter.com/1/users/profile_image?screen_name=" ++ user
                 let queryurl = url {queryString = query}
                 return queryurl
 

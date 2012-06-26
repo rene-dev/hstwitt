@@ -109,7 +109,7 @@ instance FromJSON Tweet where
                 tretweet_count' <- o .: "retweet_count"
                 tfavorited' <- o .:? "favorited"
                 tretweeted' <- o .: "retweeted"
-		return $ Tweet 	{ tcreated_at = tcreated_at'
+		return Tweet 	{ tcreated_at = tcreated_at'
 				, tid = tid'
 				, tid_str = tid_str'
 				, ttext = ttext'
@@ -204,7 +204,7 @@ instance FromJSON TUser where
                 tudefault_profile' <- o .: "default_profile"
                 tudefault_profile_image' <- o .: "default_profile_image"
                 tufollowing' <- o .:? "following"
-		return $ TUser 	{ tuid = tuid'
+		return TUser 	{ tuid = tuid'
                 		, tuid_str = tuid_str'
 		                , tuname = tuname'
                 		, tuscreen_name = tuscreen_name'
