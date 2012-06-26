@@ -23,13 +23,11 @@ import Paths_Hstwitt
 
 createGUI conf = do
         initGUI
-        timeoutAddFull (yield >> return True)
-                         priorityDefaultIdle 50
         uiFile <- getDataFileName "UI.glade"
         Just xml <- xmlNew uiFile
         window   <- xmlGetWidget xml castToWindow "window_MainWindow"
         tweetsBox <- xmlGetWidget xml castToVBox "vbox_tweets"
-        tweetsViewPort <- xmlGetWidget xml castToViewport "viewport_tweets"
+        tweetsViewport <- xmlGetWidget xml castToViewport "viewport_tweets"
         imageTweet <- xmlGetWidget xml castToImage "image_tweet"
         textviewTweet <- xmlGetWidget xml castToTextView "textview_tweet"
         buttonTweet <- xmlGetWidget xml castToButton "button_tweet"
@@ -41,12 +39,23 @@ createGUI conf = do
         case timeline of
             Just jtimeline -> mapM (addTweet tweetsBox) $ reverse jtimeline
             Nothing -> return [()]
-        scrollDown tweetsViewPort
-        onClicked buttonTweet $ sendTweet conf textviewTweet
-        forkIO $ updateLoop conf tweetsBox
+        on buttonTweet buttonActivated $ sendTweet conf textviewTweet
+        on textviewTweet keyPressEvent $ enterSendTweet conf textviewTweet
+--        on tweetsBox add $ \_ -> scrollDown tweetsViewport
+--        after tweetsBox add $ \_ -> scrollDown tweetsViewport
+        timeoutAdd (postGUIAsync (update conf tweetsViewport) >>= \_ -> return True) 10000
         onDestroy window mainQuit
         widgetShowAll window
+        adjustment <- viewportGetVAdjustment tweetsViewport
+        scrollDown True adjustment
         mainGUI
+
+--enterSendTweet :: EventM EKey Bool
+enterSendTweet conf tv =  do 
+        tryEvent $ do
+            "Return" <- eventKeyName
+            [Control] <- eventModifier
+            liftIO $ sendTweet conf tv
 
 createAuthGUI :: IO (String, a) -> (a -> String -> IO ()) -> IO ()
 createAuthGUI getauthcode auth= do
@@ -64,16 +73,29 @@ createAuthGUI getauthcode auth= do
     onClicked okButton $ do 
         sendPin auth credentials pinEntry
         widgetHide window
-    onDestroy window mainQuit
+    onDestroy window $ widgetDestroy window
     widgetShowAll window
     mainGUI
 
-scrollDown :: Viewport -> IO ()
-scrollDown sw = do
-    swva <- viewportGetVAdjustment sw
-    down <- adjustmentGetUpper swva
-    adjustmentSetValue swva down
+getIsScrolledDown :: Viewport -> IO Bool
+getIsScrolledDown viewport = do
+    adjustment <- viewportGetVAdjustment viewport
+    value <- adjustmentGetValue adjustment
+    upper <- adjustmentGetUpper adjustment
+    page_size <- adjustmentGetPageSize adjustment
+    putStrLn $ (show value) ++ show (upper - page_size)
+    return (value == (upper - page_size))
 
+
+scrollDown :: Bool -> Adjustment -> IO ()
+scrollDown doIt adjustment = if doIt then do
+        putStrLn "Downdowndown it goes"
+--        adjustment <- viewportGetVAdjustment viewport
+        upper <- adjustmentGetUpper adjustment
+        page_size <- adjustmentGetPageSize adjustment
+        adjustmentSetValue adjustment $ (upper - page_size) + 1 
+        else do
+            putStrLn "Ich will nicht"
 
 sendPin :: (a -> String -> IO()) -> a -> Entry -> IO ()
 sendPin auth credentials pinEntry = do
@@ -81,21 +103,32 @@ sendPin auth credentials pinEntry = do
     auth credentials pin
     
 
-updateLoop :: Conf -> VBox -> IO ()
-updateLoop conf tweetsBox = do
-    threadDelay 30000000
+update :: Conf -> Viewport -> IO ()
+update conf tweetsViewport = do    
+    Just tweetsWidget <- binGetChild tweetsViewport :: IO (Maybe Widget)
+    wasScrolledDown <- getIsScrolledDown tweetsViewport
+    let tweetsBox = castToVBox tweetsWidget
+    adjustment <- viewportGetVAdjustment tweetsViewport
+    signal <- afterAdjChanged adjustment $ scrollDown wasScrolledDown adjustment
+--    signal <- afterAdjChanged adjustment $ scrollDown wasScrolledDown adjustment
     putStrLn "Update"
     ntimeline <- getNewHomeTimeline conf
     case ntimeline of
         Just jtimeline -> do
             mapM (addTweet tweetsBox) $ reverse jtimeline
-            widgetQueueDraw tweetsBox
+--            widgetQueueDraw tweetsBox
             widgetHide tweetsBox
             widgetShowAll tweetsBox
+--            scrollDown wasScrolledDown tweetsViewport
+--            if wasScrolledDown then scrollDown tweetsViewport else return ()
         Nothing -> do
 --            putStrLn "Nichts zu tun"
             return ()
-    updateLoop conf tweetsBox
+--    if wasScrolledDown then
+--        signalDisconnect signal
+--     else
+--        return ()
+--    updateLoop conf tweetsViewport
 
 sendTweet :: Conf -> TextView -> IO ()
 sendTweet conf tw = do    
@@ -104,7 +137,7 @@ sendTweet conf tw = do
     end <- textBufferGetEndIter buffer
     tweet <- textBufferGetText buffer start end False
     textBufferDelete buffer start end
-    thread <- forkIO $ updateTweets conf tweet
+    postGUIAsync $ updateTweets conf tweet
     return ()
 
 
@@ -150,6 +183,8 @@ addTweet vBox tweet = do
     boxPackEnd tweetbox tweetLabel PackGrow 0
     boxPackEnd tweetbox tweetimg PackNatural 0
     boxPackStart vBox tweetbox PackNatural 0
+--    widgetShowAll vBox
+--    putStrLn $ tuscreen_name $ tuser tweet
 
 tweet2textBuffer :: Tweet -> TextTagTable-> IO TextBuffer
 tweet2textBuffer t tagtable = do
